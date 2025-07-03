@@ -1,0 +1,39 @@
+name: Daily Post Creator
+
+on:
+  schedule:
+    - cron: '30 2 * * *'  # 8:00 AM IST
+  workflow_dispatch:
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create post file with template
+        run: |
+          DATE=$(date -u +"%Y-%m-%d" -d "330 minutes")
+          DAY_NUM=$(($(git ls-files posts | wc -l) + 1))
+          TOPIC=$(( $DAY_NUM % 2 == 0 ? "ts" : "js" ))
+          TOPIC_NAME=$([ "$TOPIC" = "js" ] && echo "JavaScript" || echo "TypeScript")
+          FILENAME="posts/${DATE}-${TOPIC}-daily-post.md"
+
+          echo -e "# 📌 Daily ${TOPIC_NAME} Post – ${DATE}\n" > "$FILENAME"
+          echo -e "## 🔥 Hook\n_A quick summary that grabs attention._\n" >> "$FILENAME"
+          echo -e "## 💡 Insight\n_Explain the concept clearly, simply._\n" >> "$FILENAME"
+          echo -e "## 🧪 Code Example\n\`\`\`${TOPIC}\n// Your example here\n\`\`\`\n" >> "$FILENAME"
+          echo -e "## 🚀 Takeaway\n_Summarize why it matters and when to use it._\n" >> "$FILENAME"
+          echo -e "## 🧠 Engage\n💬 Ask a question to prompt discussion or reflection.\n" >> "$FILENAME"
+          echo -e "\n---\n\n#${TOPIC_NAME// /} #WebDevelopment #Frontend #CodingTips" >> "$FILENAME"
+
+          git add "$FILENAME"
+          git commit -m "chore: generate ${TOPIC_NAME} post template for ${DATE}"
+          git push
