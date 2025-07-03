@@ -10,26 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Commit and push changes
+      - name: Create post file
         run: |
-          git config user.name "Daily Post Bot"
-          git config user.email "bot@daily-post.com"
-          git add "$FILENAME"
-          git commit -m "chore: generate ${TOPIC_NAME} post template for ${DATE}" || echo "Nothing to commit"
-          git push origin HEAD
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Create post file with template
-        run: |
+          mkdir -p posts
+
           DATE=$(date -u +"%Y-%m-%d" -d "330 minutes")
-          DAY_NUM=$(($(git ls-files posts | wc -l) + 1))
-          TOPIC=$(( $DAY_NUM % 2 == 0 ? "ts" : "js" ))
-          TOPIC_NAME=$([ "$TOPIC" = "js" ] && echo "JavaScript" || echo "TypeScript")
+          NUM_EXISTING=$(ls posts | wc -l | tr -d ' ')
+          TOPIC_TYPE=$(( NUM_EXISTING % 2 == 0 ? 0 : 1 ))
+
+          if [ "$TOPIC_TYPE" -eq 0 ]; then
+            TOPIC="js"
+            TOPIC_NAME="JavaScript"
+          else
+            TOPIC="ts"
+            TOPIC_NAME="TypeScript"
+          fi
+
           FILENAME="posts/${DATE}-${TOPIC}-daily-post.md"
+
+          echo "Creating post file: $FILENAME"
 
           echo -e "# 📌 Daily ${TOPIC_NAME} Post – ${DATE}\n" > "$FILENAME"
           echo -e "## 🔥 Hook\n_A quick summary that grabs attention._\n" >> "$FILENAME"
@@ -39,6 +41,10 @@ jobs:
           echo -e "## 🧠 Engage\n💬 Ask a question to prompt discussion or reflection.\n" >> "$FILENAME"
           echo -e "\n---\n\n#${TOPIC_NAME// /} #WebDevelopment #Frontend #CodingTips" >> "$FILENAME"
 
+          git config user.name "Daily Post Bot"
+          git config user.email "bot@daily-post.com"
           git add "$FILENAME"
-          git commit -m "chore: generate ${TOPIC_NAME} post template for ${DATE}"
-          git push
+          git commit -m "chore: generate ${TOPIC_NAME} post template for ${DATE}" || echo "Nothing to commit"
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
